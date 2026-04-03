@@ -1,0 +1,30 @@
+svaki constant pravi svoj node
+svaki expression/operator pravi svoj node
+svaki statement pravi svoj node
+
+Finished:
+declaration
+
+Which rules do you need to add actions to?
+Exclusively these — nothing else:
+For the symbol table (declarations):
+
+declaration — this is where you call insert()
+
+For the AST (expressions):
+
+primary_expression — identifiers and constants, call make_identifier() and make_constant()
+additive_expression — + and -, call make_binop()
+multiplicative_expression — *, /, %, call make_binop()
+relational_expression — <, >, <=, >=, call make_binop()
+equality_expression — ==, !=, call make_binop()
+unary_expression — -a, !a, call make_unop()
+assignment_expression — a = ..., call make_binop()
+
+For the AST (statements):
+
+selection_statement — if/else, call make_if()
+iteration_statement — while, for, call make_while(), make_for()
+jump_statement — return, call make_return()
+compound_statement — the { } block, call make_statement_list()
+function_definition — the root, store the finished tree here
