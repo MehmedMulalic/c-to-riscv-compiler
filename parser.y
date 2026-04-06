@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "intermediate.h"
 
 char *input_filename = NULL;
 char *output_filename = "a.c";
@@ -12,8 +11,24 @@ int yylex();
 void yyerror();
 %}
 
+%code requires {
+	#include "intermediate.h"
+}
 
-%token IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
+%union {
+	char *strval;
+	ASTNode *node;
+}
+
+%type <node> statement_list statement labeled_statement compound_statement
+%type <node> expression_statement selection_statement iteration_statement jump_statement
+%type <node> expression assignment_expression conditional_expression logical_or_expression
+%type <node> logical_and_expression inclusive_or_expression exclusive_or_expression
+%type <node> and_expression equality_expression relational_expression shift_expression
+%type <node> additive_expression multiplicative_expression cast_expression unary_expression
+%type <node> postfix_expression primary_expression
+
+%token <strval> IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
 %token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
 %token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
@@ -29,12 +44,10 @@ void yyerror();
 %%
 
 primary_expression
-	: IDENTIFIER
-		{ $$ = make_identifier($1); } /* svaki identifier pravi svoj node */
-	| CONSTANT
-		{ $$ = make_constant($1); } /* svaki constant pravi node */
-	| STRING_LITERAL
-	| '(' expression ')'
+	: IDENTIFIER { $$ = make_identifier($1, lookup($1)); }
+	| CONSTANT { $$ = make_constant($1); }
+	| STRING_LITERAL { printf("DEBUG STLIT: %s\n", $1); }
+	| '(' expression ')' { printf("DEBUG expression parser\n"); }
 	;
 
 postfix_expression
@@ -55,11 +68,11 @@ argument_expression_list
 
 unary_expression
 	: postfix_expression
-	| INC_OP unary_expression
-	| DEC_OP unary_expression
-	| unary_operator cast_expression
-	| SIZEOF unary_expression
-	| SIZEOF '(' type_name ')'
+	| INC_OP unary_expression { $$ = $2; }
+	| DEC_OP unary_expression { $$ = $2; }
+	| unary_operator cast_expression { $$ = $2; }
+	| SIZEOF unary_expression { $$ = $2; }
+	| SIZEOF '(' type_name ')'{ $$ = NULL; }
 	;
 
 unary_operator
@@ -73,7 +86,7 @@ unary_operator
 
 cast_expression
 	: unary_expression
-	| '(' type_name ')' cast_expression
+	| '(' type_name ')' cast_expression { $$ = $4; }
 	;
 
 multiplicative_expression
@@ -86,6 +99,7 @@ multiplicative_expression
 additive_expression
 	: multiplicative_expression
 	| additive_expression '+' multiplicative_expression
+		{ make_binop("+", $1, $3); }
 	| additive_expression '-' multiplicative_expression
 	;
 
@@ -161,6 +175,7 @@ assignment_operator
 expression
 	: assignment_expression
 	| expression ',' assignment_expression
+		{ printf("DEBUGEXPRESSION LIST\n"); }
 	;
 
 constant_expression
@@ -187,8 +202,8 @@ init_declarator_list
 	;
 
 init_declarator
-	: declarator
-	| declarator '=' initializer
+	: declarator /* int a; */
+	| declarator '=' initializer /* int a = 5; */
 	;
 
 storage_class_specifier
@@ -274,14 +289,13 @@ type_qualifier
 	;
 
 declarator
-	: pointer direct_declarator
+	: pointer direct_declarator { printf("DEBUG pointer declarator\n"); }
 	| direct_declarator
 	;
 
 direct_declarator
-	: IDENTIFIER
-		{ insert($1); }
-	| '(' declarator ')'
+	: IDENTIFIER { insert($1); }
+	| '(' declarator ')' { printf("DEBUG (DECLARATOR)\n"); }
 	| direct_declarator '[' constant_expression ']'
 	| direct_declarator '[' ']'
 	| direct_declarator '(' parameter_type_list ')'
@@ -358,25 +372,25 @@ initializer_list
 	;
 
 statement
-	: labeled_statement
-	| compound_statement
-	| expression_statement
-	| selection_statement
-	| iteration_statement
-	| jump_statement
+	: labeled_statement { $$ = $1; }
+	| compound_statement { $$ = $1; }
+	| expression_statement { $$ = $1; }
+	| selection_statement { $$ = $1; }
+	| iteration_statement { $$ = $1; }
+	| jump_statement { $$ = $1; }
 	;
 
 labeled_statement
-	: IDENTIFIER ':' statement
-	| CASE constant_expression ':' statement
-	| DEFAULT ':' statement
+	: IDENTIFIER ':' statement { $$ = $3; }
+	| CASE constant_expression ':' statement { $$ = $4; }
+	| DEFAULT ':' statement { $$ = $3; }
 	;
 
 compound_statement
-	: '{' '}'
-	| '{' statement_list '}'
-	| '{' declaration_list '}'
-	| '{' declaration_list statement_list '}'
+	: '{' '}' { $$ = NULL; }
+	| '{' statement_list '}' { root_node = $2; }
+	| '{' declaration_list '}' { $$ = NULL; }
+	| '{' declaration_list statement_list '}' { root_node = $3; }
 	;
 
 declaration_list
@@ -386,33 +400,35 @@ declaration_list
 
 statement_list
 	: statement
-	| statement_list statement
+	| statement_list statement { $$ = make_statement_list($1, $2); }
 	;
 
 expression_statement
-	: ';'
-	| expression ';'
+	: ';' { $$ = NULL; }
+	| expression ';' { $$ = $1; }
 	;
 
 selection_statement
-	: IF '(' expression ')' statement
-	| IF '(' expression ')' statement ELSE statement
-	| SWITCH '(' expression ')' statement
+	: IF '(' expression ')' statement { $$ = NULL; }
+	| IF '(' expression ')' statement ELSE statement { $$ = NULL; }
+	| SWITCH '(' expression ')' statement { $$ = NULL; }
 	;
 
 iteration_statement
-	: WHILE '(' expression ')' statement
-	| DO statement WHILE '(' expression ')' ';'
+	: WHILE '(' expression ')' statement { $$ = NULL; }
+	| DO statement WHILE '(' expression ')' ';' { $$ = NULL; }
 	| FOR '(' expression_statement expression_statement ')' statement
+		{ $$ = NULL; }
 	| FOR '(' expression_statement expression_statement expression ')' statement
+		{ $$ = NULL; }
 	;
 
 jump_statement
-	: GOTO IDENTIFIER ';'
-	| CONTINUE ';'
-	| BREAK ';'
-	| RETURN ';'
-	| RETURN expression ';'
+	: GOTO IDENTIFIER ';' { $$ = NULL; }
+	| CONTINUE ';' { $$ = NULL; }
+	| BREAK ';' { $$ = NULL; }
+	| RETURN ';' { $$ = NULL; }
+	| RETURN expression ';' { $$ = $2; }
 	;
 
 translation_unit
@@ -483,6 +499,8 @@ int main(int argc, char **argv)
  }
 
  i=yyparse();
+
+ if (root_node != NULL) print_dot("AST.dot", root_node);
 
  if (i==0)
    fprintf(stderr,"\nNo errors detected.\n");

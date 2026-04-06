@@ -52,14 +52,14 @@ int check_type();
 
 {L}({L}|{D})*		{ count(); return(check_type()); }
 
-0[xX]{H}+{IS}?		{ count(); return(CONSTANT); }
-0{D}+{IS}?		{ count(); return(CONSTANT); }
-{D}+{IS}?		{ count(); return(CONSTANT); }
-L?'(\\.|[^\\'])+'	{ count(); return(CONSTANT); }
+0[xX]{H}+{IS}?		{ count(); yylval.strval = strdup(yytext); return(CONSTANT); }
+0{D}+{IS}?		{ count(); yylval.strval = strdup(yytext); return(CONSTANT); }
+{D}+{IS}?		{ count(); yylval.strval = strdup(yytext); return(CONSTANT); }
+L?'(\\.|[^\\'])+'	{ count(); yylval.strval = strdup(yytext); return(CONSTANT); }
 
-{D}+{E}{FS}?		{ count(); return(CONSTANT); }
-{D}*"."{D}+({E})?{FS}?	{ count(); return(CONSTANT); }
-{D}+"."{D}*({E})?{FS}?	{ count(); return(CONSTANT); }
+{D}+{E}{FS}?		{ count(); yylval.strval = strdup(yytext); return(CONSTANT); }
+{D}*"."{D}+({E})?{FS}?	{ count(); yylval.strval = strdup(yytext); return(CONSTANT); }
+{D}+"."{D}*({E})?{FS}?	{ count(); yylval.strval = strdup(yytext); return(CONSTANT); }
 
 L?\"(\\.|[^\\"])*\"	{ count(); return(STRING_LITERAL); }
 
@@ -175,5 +175,6 @@ int check_type()
 *	it actually will only return IDENTIFIER
 */
 
+	yylval.strval = strdup(yytext);
 	return(IDENTIFIER);
 }

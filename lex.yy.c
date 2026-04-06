@@ -1072,38 +1072,38 @@ YY_RULE_SETUP
 case 35:
 YY_RULE_SETUP
 #line 55 "scanner.l"
-{ count(); return(CONSTANT); }
+{ count(); yylval.strval = strdup(yytext); return(CONSTANT); }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
 #line 56 "scanner.l"
-{ count(); return(CONSTANT); }
+{ count(); yylval.strval = strdup(yytext); return(CONSTANT); }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
 #line 57 "scanner.l"
-{ count(); return(CONSTANT); }
+{ count(); yylval.strval = strdup(yytext); return(CONSTANT); }
 	YY_BREAK
 case 38:
 /* rule 38 can match eol */
 YY_RULE_SETUP
 #line 58 "scanner.l"
-{ count(); return(CONSTANT); }
+{ count(); yylval.strval = strdup(yytext); return(CONSTANT); }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
 #line 60 "scanner.l"
-{ count(); return(CONSTANT); }
+{ count(); yylval.strval = strdup(yytext); return(CONSTANT); }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
 #line 61 "scanner.l"
-{ count(); return(CONSTANT); }
+{ count(); yylval.strval = strdup(yytext); return(CONSTANT); }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
 #line 62 "scanner.l"
-{ count(); return(CONSTANT); }
+{ count(); yylval.strval = strdup(yytext); return(CONSTANT); }
 	YY_BREAK
 case 42:
 /* rule 42 can match eol */
@@ -2425,6 +2425,7 @@ int check_type()
 *	it actually will only return IDENTIFIER
 */
 
+	yylval.strval = strdup(yytext);
 	return(IDENTIFIER);
 }
 

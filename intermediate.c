@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "intermediate.h"
 
@@ -24,39 +25,27 @@ void print_dot_node(FILE *f, ASTNode *node, int *counter) {
 
     int id = (*counter)++;
 
-    fprintf(f, "  node%d [label=\"%s\"];\n", id, get_label(node));
+    fprintf(f, "  node%d [label=\"%s\"];\n", id, node->name);
 
-    if (node->right != NULL) {
-        int right_id = *counter;
-        print_dot_node(f, node->right, right_id);
-        fprintf(f, "  node%d -> node%d;\n", id, right_id);
-    }
     if (node->left != NULL) {
         int left_id = *counter;
-        print_dot_node(f, node->left, left_id);
+        print_dot_node(f, node->left, counter);
         fprintf(f, "  node%d -> node%d;\n", id, left_id);
     }
-}
-
-char *get_label(ASTNode *node) {
-    switch (node->node_type) {
-        case NODE_BINOP:        
-        case NODE_UNOP:
-        case NODE_CONSTANT:     return node->name;
-        case NODE_IDENTIFIER:   return node->name;
-        case NODE_RETURN:
-        case NODE_IF:
+    if (node->right != NULL) {
+        int right_id = *counter;
+        print_dot_node(f, node->right, counter);
+        fprintf(f, "  node%d -> node%d;\n", id, right_id);
     }
 }
 
 void insert(char *name) {
-    printf("DEBUG insert - %s\n", name);
     if (symbol_count >= MAX_SYMBOLS) {
         printf("ERROR - Symbol table at full capacity.\n");
         return;
     }
 
-    strcpy(symbol_table[symbol_count].name, name);
+    symbol_table[symbol_count].name = strdup(name);
     symbol_table[symbol_count].type = current_type;
 
     symbol_count++;
@@ -72,26 +61,72 @@ SymbolStatement *lookup(char *name) {
     return NULL;
 }
 
+ASTNode *make_statement_list(ASTNode *current, ASTNode *next) {
+    ASTNode *node = malloc(sizeof(ASTNode));
+    if (!node) {
+        printf("ERROR - failed to initialize node\n");
+        return NULL;
+    }
+
+    node->left = current;
+    node->right = next;
+    node->name = strdup("STLIST");
+
+    return node;
+}
+
+ASTNode *make_identifier(char *name, SymbolStatement *ss) {
+    if (ss == NULL) {
+        printf("ERROR - identifier not declared\n");
+        return NULL;
+    }
+
+    ASTNode *node = malloc(sizeof(ASTNode));
+    if (!node) {
+        printf("ERROR - failed to initialize node\n");
+        return NULL;
+    }
+
+    node->name = strdup(name);
+    return node;
+}
+
 ASTNode *make_constant(char *name) {
-    ASTNode node = {};
-    node.node_type = NODE_CONSTANT;
-    snprintf(node.name, sizeof(node.name), name);
-    printf("DEBUG constant - %s\n", name);
+    ASTNode *node = malloc(sizeof(ASTNode));
+    if (!node) {
+        printf("ERROR - failed to initialize node\n");
+        return NULL;
+    }
 
-    return &node;
+    node->name = strdup(name);
+    return node;
 }
 
-ASTNode *make_identifier(char *name) {
-    ASTNode node = {};
-    node.node_type = NODE_IDENTIFIER;
-    snprintf(node.name, sizeof(node.name), name);
-    printf("DEBUG identifier - %s\n", name);
+ASTNode *make_binop(char *op, ASTNode *node1, ASTNode *node2) {
+    if (node1 == NULL || node2 == NULL) {
+        printf("ERROR - NULL symbols during binop creation\n");
+        return NULL;
+    }
 
-    return &node;
-}
+    ASTNode *node = malloc(sizeof(ASTNode));
+    if (!node) {
+        printf("ERROR - failed to initialize node\n");
+        return NULL;
+    }
+    ASTNode *node_left = malloc(sizeof(ASTNode));
+    if (!node) {
+        printf("ERROR - failed to initialize node\n");
+        return NULL;
+    }
+    ASTNode *node_right = malloc(sizeof(ASTNode));
+    if (!node) {
+        printf("ERROR - failed to initialize node\n");
+        return NULL;
+    }
 
-ASTNode *make_binop(int op_type, char *var1, char *var2) {
-    ASTNode node = {};
+    node->left = node_left;
+    node->right = node_right;
+    node->name = strdup(op);
 
-    return &node;
+    return node;
 }

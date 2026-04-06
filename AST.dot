@@ -1,0 +1,8 @@
+digraph AST {
+  edge [arrowhead=none];
+  node0 [label="STLIST"];
+  node1 [label="b"];
+  node0 -> node1;
+  node2 [label="a"];
+  node0 -> node2;
+}
