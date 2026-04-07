@@ -19,6 +19,8 @@ void print_dot_node(FILE *f, ASTNode *node, int *counter);
 void insert(char *name);
 SymbolStatement *lookup(char *name);
 
+void print_node(ASTNode *node);
+
 ASTNode *make_statement_list(ASTNode *current, ASTNode *next);
 ASTNode *make_identifier(char *name, SymbolStatement *ss);
 ASTNode *make_constant(char *name);

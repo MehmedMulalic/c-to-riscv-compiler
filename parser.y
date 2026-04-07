@@ -99,7 +99,7 @@ multiplicative_expression
 additive_expression
 	: multiplicative_expression
 	| additive_expression '+' multiplicative_expression
-		{ make_binop("+", $1, $3); }
+		{ $$ = make_binop("+", $1, $3); }
 	| additive_expression '-' multiplicative_expression
 	;
 
@@ -156,6 +156,7 @@ conditional_expression
 assignment_expression
 	: conditional_expression
 	| unary_expression assignment_operator assignment_expression
+		{ $$ = make_binop("=", $1, $3); }
 	;
 
 assignment_operator
