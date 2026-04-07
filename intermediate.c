@@ -102,23 +102,13 @@ ASTNode *make_constant(char *name) {
     return node;
 }
 
-ASTNode *make_binop(char *op, ASTNode *node1, ASTNode *node2) {
-    if (node1 == NULL || node2 == NULL) {
+ASTNode *make_binop(char *op, ASTNode *node_left, ASTNode *node_right) {
+    if (node_left == NULL || node_right == NULL) {
         printf("ERROR - NULL symbols during binop creation\n");
         return NULL;
     }
 
     ASTNode *node = malloc(sizeof(ASTNode));
-    if (!node) {
-        printf("ERROR - failed to initialize node\n");
-        return NULL;
-    }
-    ASTNode *node_left = malloc(sizeof(ASTNode));
-    if (!node) {
-        printf("ERROR - failed to initialize node\n");
-        return NULL;
-    }
-    ASTNode *node_right = malloc(sizeof(ASTNode));
     if (!node) {
         printf("ERROR - failed to initialize node\n");
         return NULL;
