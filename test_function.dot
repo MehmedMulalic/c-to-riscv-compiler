@@ -1,0 +1,28 @@
+digraph AST {
+  edge [arrowhead=none];
+  node0 [label="STLIST"];
+  node1 [label="STLIST"];
+  node2 [label="STLIST"];
+  node3 [label="STLIST"];
+  node4 [label="="];
+  node5 [label="a"];
+  node4 -> node5;
+  node6 [label="1"];
+  node4 -> node6;
+  node3 -> node4;
+  node7 [label="="];
+  node8 [label="b"];
+  node7 -> node8;
+  node9 [label="3"];
+  node7 -> node9;
+  node3 -> node7;
+  node2 -> node3;
+  node10 [label="="];
+  node11 [label="c"];
+  node10 -> node11;
+  node12 [label="0"];
+  node10 -> node12;
+  node2 -> node10;
+  node1 -> node2;
+  node0 -> node1;
+}

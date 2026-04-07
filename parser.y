@@ -373,12 +373,12 @@ initializer_list
 	;
 
 statement
-	: labeled_statement { $$ = $1; }
-	| compound_statement { $$ = $1; }
-	| expression_statement { $$ = $1; }
-	| selection_statement { $$ = $1; }
-	| iteration_statement { $$ = $1; }
-	| jump_statement { $$ = $1; }
+	: labeled_statement
+	| compound_statement
+	| expression_statement
+	| selection_statement
+	| iteration_statement
+	| jump_statement
 	;
 
 labeled_statement
@@ -501,7 +501,7 @@ int main(int argc, char **argv)
 
  i=yyparse();
 
- if (root_node != NULL) print_dot("AST.dot", root_node);
+ if (root_node != NULL) print_dot("test_function.dot", root_node);
 
  if (i==0)
    fprintf(stderr,"\nNo errors detected.\n");
@@ -510,4 +510,3 @@ int main(int argc, char **argv)
 
  exit(i);
 }
-

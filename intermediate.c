@@ -75,14 +75,6 @@ ASTNode *make_statement_list(ASTNode *current, ASTNode *next) {
     return node;
 }
 
-void print_node(ASTNode *node) {
-    printf("DEBUG PRINT NODE - %s\n", node->name);
-}
-
-ASTNode *make_statement(char *name) {
-
-}
-
 ASTNode *make_identifier(char *name, SymbolStatement *ss) {
     if (ss == NULL) {
         printf("ERROR - identifier not declared\n");
