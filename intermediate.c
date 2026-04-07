@@ -8,6 +8,16 @@ size_t symbol_count = 0;
 SymbolStatement symbol_table[MAX_SYMBOLS];
 ASTNode *root_node = NULL;
 
+ASTNode *create_node() {
+    ASTNode *node = calloc(1, sizeof(ASTNode));
+    if (!node) {
+        printf("ERROR - failed to initialize node\n");
+        return NULL;
+    }
+
+    return node;
+}
+
 void print_dot(char *filename, ASTNode *root) {
     FILE *f = fopen(filename, "w");
     fprintf(f, "digraph AST {\n");
@@ -62,15 +72,11 @@ SymbolStatement *lookup(char *name) {
 }
 
 ASTNode *make_statement_list(ASTNode *current, ASTNode *next) {
-    ASTNode *node = malloc(sizeof(ASTNode));
-    if (!node) {
-        printf("ERROR - failed to initialize node\n");
-        return NULL;
-    }
+    ASTNode *node = create_node();
 
     node->left = current;
     node->right = next;
-    node->name = strdup("STLIST");
+    node->name = "STATEMENTS";
 
     return node;
 }
@@ -81,24 +87,16 @@ ASTNode *make_identifier(char *name, SymbolStatement *ss) {
         return NULL;
     }
 
-    ASTNode *node = malloc(sizeof(ASTNode));
-    if (!node) {
-        printf("ERROR - failed to initialize node\n");
-        return NULL;
-    }
-
+    ASTNode *node = create_node();
     node->name = strdup(name);
+
     return node;
 }
 
 ASTNode *make_constant(char *name) {
-    ASTNode *node = malloc(sizeof(ASTNode));
-    if (!node) {
-        printf("ERROR - failed to initialize node\n");
-        return NULL;
-    }
-
+    ASTNode *node = create_node();
     node->name = strdup(name);
+
     return node;
 }
 
@@ -108,11 +106,7 @@ ASTNode *make_binop(char *op, ASTNode *node_left, ASTNode *node_right) {
         return NULL;
     }
 
-    ASTNode *node = malloc(sizeof(ASTNode));
-    if (!node) {
-        printf("ERROR - failed to initialize node\n");
-        return NULL;
-    }
+    ASTNode *node = create_node();
 
     node->left = node_left;
     node->right = node_right;

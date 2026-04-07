@@ -27,12 +27,13 @@ void yyerror();
 %type <node> and_expression equality_expression relational_expression shift_expression
 %type <node> additive_expression multiplicative_expression cast_expression unary_expression
 %type <node> postfix_expression primary_expression
+%type <strval> assignment_operator
 
 %token <strval> IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
-%token AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
-%token SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
-%token XOR_ASSIGN OR_ASSIGN TYPE_NAME
+%token <strval> AND_OP OR_OP MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN
+%token <strval> SUB_ASSIGN LEFT_ASSIGN RIGHT_ASSIGN AND_ASSIGN
+%token <strval> XOR_ASSIGN OR_ASSIGN TYPE_NAME
 
 %token TYPEDEF EXTERN STATIC AUTO REGISTER
 %token CHAR SHORT INT LONG SIGNED UNSIGNED FLOAT DOUBLE CONST VOLATILE VOID
@@ -46,8 +47,8 @@ void yyerror();
 primary_expression
 	: IDENTIFIER { $$ = make_identifier($1, lookup($1)); }
 	| CONSTANT { $$ = make_constant($1); }
-	| STRING_LITERAL { printf("DEBUG STLIT: %s\n", $1); }
-	| '(' expression ')' { printf("DEBUG expression parser\n"); }
+	| STRING_LITERAL { $$ = make_constant($1); }
+	| '(' expression ')' { $$ = $2; }
 	;
 
 postfix_expression
@@ -92,8 +93,11 @@ cast_expression
 multiplicative_expression
 	: cast_expression
 	| multiplicative_expression '*' cast_expression
+		{ $$ = make_binop("*", $1, $3); }
 	| multiplicative_expression '/' cast_expression
+		{ $$ = make_binop("/", $1, $3); }
 	| multiplicative_expression '%' cast_expression
+		{ $$ = make_binop("\%", $1, $3); }
 	;
 
 additive_expression
@@ -101,51 +105,65 @@ additive_expression
 	| additive_expression '+' multiplicative_expression
 		{ $$ = make_binop("+", $1, $3); }
 	| additive_expression '-' multiplicative_expression
+		{ $$ = make_binop("-", $1, $3); }
 	;
 
 shift_expression
 	: additive_expression
 	| shift_expression LEFT_OP additive_expression
+		{ $$ = make_binop("<<", $1, $3); }
 	| shift_expression RIGHT_OP additive_expression
+		{ $$ = make_binop(">>", $1, $3); }
 	;
 
 relational_expression
 	: shift_expression
 	| relational_expression '<' shift_expression
+		{ $$ = make_binop("<", $1, $3); }
 	| relational_expression '>' shift_expression
+		{ $$ = make_binop(">", $1, $3); }
 	| relational_expression LE_OP shift_expression
+		{ $$ = make_binop("<=", $1, $3); }
 	| relational_expression GE_OP shift_expression
+		{ $$ = make_binop(">=", $1, $3); }
 	;
 
 equality_expression
 	: relational_expression
 	| equality_expression EQ_OP relational_expression
+		{ $$ = make_binop("==", $1, $3); }
 	| equality_expression NE_OP relational_expression
+		{ $$ = make_binop("!=", $1, $3); }
 	;
 
 and_expression
 	: equality_expression
 	| and_expression '&' equality_expression
+		{ $$ = make_binop("&", $1, $3); }
 	;
 
 exclusive_or_expression
 	: and_expression
 	| exclusive_or_expression '^' and_expression
+		{ $$ = make_binop("^", $1, $3); }
 	;
 
 inclusive_or_expression
 	: exclusive_or_expression
 	| inclusive_or_expression '|' exclusive_or_expression
+		{ $$ = make_binop("|", $1, $3); }
 	;
 
 logical_and_expression
 	: inclusive_or_expression
 	| logical_and_expression AND_OP inclusive_or_expression
+		{ $$ = make_binop("&&", $1, $3); }
 	;
 
 logical_or_expression
 	: logical_and_expression
 	| logical_or_expression OR_OP logical_and_expression
+		{ $$ = make_binop("||", $1, $3); }
 	;
 
 conditional_expression
@@ -156,21 +174,21 @@ conditional_expression
 assignment_expression
 	: conditional_expression
 	| unary_expression assignment_operator assignment_expression
-		{ $$ = make_binop("=", $1, $3); }
+		{ $$ = make_binop($2, $1, $3); }
 	;
 
 assignment_operator
-	: '='
-	| MUL_ASSIGN
-	| DIV_ASSIGN
-	| MOD_ASSIGN
-	| ADD_ASSIGN
-	| SUB_ASSIGN
-	| LEFT_ASSIGN
-	| RIGHT_ASSIGN
-	| AND_ASSIGN
-	| XOR_ASSIGN
-	| OR_ASSIGN
+	: '=' { $$ = "="; }
+	| MUL_ASSIGN { $$ = "*="; }
+	| DIV_ASSIGN { $$ = "/="; }
+	| MOD_ASSIGN { $$ = "\%="; }
+	| ADD_ASSIGN { $$ = "+="; }
+	| SUB_ASSIGN { $$ = "-="; }
+	| LEFT_ASSIGN { $$ = "<<="; }
+	| RIGHT_ASSIGN { $$ = ">>="; }
+	| AND_ASSIGN { $$ = "&="; }
+	| XOR_ASSIGN { $$ = "^="; }
+	| OR_ASSIGN { $$ = "|="; }
 	;
 
 expression
@@ -183,7 +201,7 @@ constant_expression
 	: conditional_expression
 	;
 
-declaration
+declaration // TODO
 	: declaration_specifiers ';'
 	| declaration_specifiers init_declarator_list ';'
 	;
@@ -203,8 +221,8 @@ init_declarator_list
 	;
 
 init_declarator
-	: declarator /* int a; */
-	| declarator '=' initializer /* int a = 5; */
+	: declarator
+	| declarator '=' initializer // TODO
 	;
 
 storage_class_specifier
@@ -290,13 +308,13 @@ type_qualifier
 	;
 
 declarator
-	: pointer direct_declarator { printf("DEBUG pointer declarator\n"); }
+	: pointer direct_declarator
 	| direct_declarator
 	;
 
 direct_declarator
 	: IDENTIFIER { insert($1); }
-	| '(' declarator ')' { printf("DEBUG (DECLARATOR)\n"); }
+	| '(' declarator ')'
 	| direct_declarator '[' constant_expression ']'
 	| direct_declarator '[' ']'
 	| direct_declarator '(' parameter_type_list ')'
@@ -389,9 +407,9 @@ labeled_statement
 
 compound_statement
 	: '{' '}' { $$ = NULL; }
-	| '{' statement_list '}' { root_node = $2; }
+	| '{' statement_list '}' { $$ = $2; root_node = $2; }
 	| '{' declaration_list '}' { $$ = NULL; }
-	| '{' declaration_list statement_list '}' { root_node = $3; }
+	| '{' declaration_list statement_list '}' { $$ = $3; root_node = $3; }
 	;
 
 declaration_list
@@ -400,8 +418,9 @@ declaration_list
 	;
 
 statement_list
-	: statement
-	| statement_list statement { $$ = make_statement_list($1, $2); }
+	: statement { $$ = $1; }
+	| statement_list statement
+		{ $$ = make_statement_list($1, $2); }
 	;
 
 expression_statement
@@ -410,14 +429,19 @@ expression_statement
 	;
 
 selection_statement
-	: IF '(' expression ')' statement { $$ = NULL; }
-	| IF '(' expression ')' statement ELSE statement { $$ = NULL; }
-	| SWITCH '(' expression ')' statement { $$ = NULL; }
+	: IF '(' expression ')' statement
+		{ $$ = make_binop("IF", $3, $5); }
+	| IF '(' expression ')' statement ELSE statement
+		{ $$ = make_binop("IF", $3, make_binop("ELSE", $5, $7)); }
+	| SWITCH '(' expression ')' statement
+		{ $$ = NULL; }
 	;
 
 iteration_statement
-	: WHILE '(' expression ')' statement { $$ = NULL; }
+	: WHILE '(' expression ')' statement
+		{ $$ = make_binop("WHILE", $3, $5); }
 	| DO statement WHILE '(' expression ')' ';' { $$ = NULL; }
+		// { $$ = make_binop("DO WHILE", $2, $5); }
 	| FOR '(' expression_statement expression_statement ')' statement
 		{ $$ = NULL; }
 	| FOR '(' expression_statement expression_statement expression ')' statement

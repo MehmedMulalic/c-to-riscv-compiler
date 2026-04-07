@@ -16,6 +16,7 @@ int check_type();
 
 %%
 "/*"			{ comment(); }
+"//".*			{ /* ignore */ }
 
 "auto"			{ count(); return(AUTO); }
 "break"			{ count(); return(BREAK); }
