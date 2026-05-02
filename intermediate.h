@@ -22,7 +22,8 @@ SymbolStatement *lookup(char *name);
 ASTNode *make_statement_list(ASTNode *current, ASTNode *next);
 ASTNode *make_identifier(char *name, SymbolStatement *ss);
 ASTNode *make_constant(char *name);
-ASTNode *make_binop(char *name, ASTNode *node1, ASTNode *node2);
+ASTNode *make_unop(char *op, ASTNode *node_left);
+ASTNode *make_binop(char *op, ASTNode *node_left, ASTNode *node_right);
 
 extern int current_type;
 extern size_t symbol_count;

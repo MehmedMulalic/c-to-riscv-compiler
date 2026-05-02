@@ -83,7 +83,6 @@ ASTNode *make_statement_list(ASTNode *current, ASTNode *next) {
 
 ASTNode *make_identifier(char *name, SymbolStatement *ss) {
     if (ss == NULL) {
-        printf("ERROR - identifier not declared\n");
         return NULL;
     }
 
@@ -100,14 +99,26 @@ ASTNode *make_constant(char *name) {
     return node;
 }
 
-ASTNode *make_binop(char *op, ASTNode *node_left, ASTNode *node_right) {
-    if (node_left == NULL || node_right == NULL) {
-        printf("ERROR - NULL symbols during binop creation\n");
+ASTNode *make_unop(char *op, ASTNode *node_left) {
+    if (node_left == NULL) {
+        printf("ERROR - NULL node during unop creation\n");
         return NULL;
     }
 
     ASTNode *node = create_node();
+    node->left = node_left;
+    node->name = strdup(op);
 
+    return node;
+}
+
+ASTNode *make_binop(char *op, ASTNode *node_left, ASTNode *node_right) {
+    if (node_left == NULL || node_right == NULL) {
+        printf("ERROR - NULL node during binop creation\n");
+        return NULL;
+    }
+
+    ASTNode *node = create_node();
     node->left = node_left;
     node->right = node_right;
     node->name = strdup(op);

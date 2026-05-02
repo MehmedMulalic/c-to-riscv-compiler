@@ -17,7 +17,7 @@ debug:
 	gcc -g lex.yy.c parser.tab.c intermediate.c -o cparser
 
 clean:
-	rm -f lex.yy.c parser.tab.c parser.tab.h intermediate.c intermediate.h cparser 
+	rm -f lex.yy.c parser.tab.c parser.tab.h test_function.dot test_function.png cparser 
 
 clean_all:
-	rm -f lex.yy.c parser.tab.c parser.tab.h intermediate.c intermediate.h cparser *.lis 
+	rm -f lex.yy.c parser.tab.c parser.tab.h test_function.dot test_function.png cparser *.lis 

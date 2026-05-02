@@ -27,7 +27,7 @@ void yyerror();
 %type <node> and_expression equality_expression relational_expression shift_expression
 %type <node> additive_expression multiplicative_expression cast_expression unary_expression
 %type <node> postfix_expression primary_expression
-%type <strval> assignment_operator
+%type <strval> assignment_operator unary_operator
 
 %token <strval> IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
@@ -55,11 +55,15 @@ postfix_expression
 	: primary_expression
 	| postfix_expression '[' expression ']'
 	| postfix_expression '(' ')'
+		{ $$ = NULL; } // function call
 	| postfix_expression '(' argument_expression_list ')'
+		{ $$ = NULL; } // function call
 	| postfix_expression '.' IDENTIFIER
 	| postfix_expression PTR_OP IDENTIFIER
 	| postfix_expression INC_OP
+		{ $$ = make_unop("++", $1); }
 	| postfix_expression DEC_OP
+		{ $$ = make_unop("--", $1); }
 	;
 
 argument_expression_list
@@ -69,20 +73,20 @@ argument_expression_list
 
 unary_expression
 	: postfix_expression
-	| INC_OP unary_expression { $$ = $2; }
-	| DEC_OP unary_expression { $$ = $2; }
-	| unary_operator cast_expression { $$ = $2; }
+	| INC_OP unary_expression { $$ = make_unop("++", $2); }
+	| DEC_OP unary_expression { $$ = make_unop("--", $2); }
+	| unary_operator cast_expression { $$ = make_unop($1, $2); }
 	| SIZEOF unary_expression { $$ = $2; }
 	| SIZEOF '(' type_name ')'{ $$ = NULL; }
 	;
 
 unary_operator
-	: '&'
-	| '*'
-	| '+'
-	| '-'
-	| '~'
-	| '!'
+	: '&' { $$ = "&"; }
+	| '*' { $$ = "*"; }
+	| '+' { $$ = "+"; }
+	| '-' { $$ = "-"; }
+	| '~' { $$ = "~"; }
+	| '!' { $$ = "!"; }
 	;
 
 cast_expression
@@ -194,14 +198,13 @@ assignment_operator
 expression
 	: assignment_expression
 	| expression ',' assignment_expression
-		{ printf("DEBUGEXPRESSION LIST\n"); }
 	;
 
 constant_expression
 	: conditional_expression
 	;
 
-declaration // TODO
+declaration
 	: declaration_specifiers ';'
 	| declaration_specifiers init_declarator_list ';'
 	;
@@ -222,7 +225,7 @@ init_declarator_list
 
 init_declarator
 	: declarator
-	| declarator '=' initializer // TODO
+	| declarator '=' initializer
 	;
 
 storage_class_specifier
@@ -434,26 +437,26 @@ selection_statement
 	| IF '(' expression ')' statement ELSE statement
 		{ $$ = make_binop("IF", $3, make_binop("ELSE", $5, $7)); }
 	| SWITCH '(' expression ')' statement
-		{ $$ = NULL; }
+		{ $$ = make_binop("SWITCH", $3, $5); }
 	;
 
 iteration_statement
 	: WHILE '(' expression ')' statement
 		{ $$ = make_binop("WHILE", $3, $5); }
-	| DO statement WHILE '(' expression ')' ';' { $$ = NULL; }
-		// { $$ = make_binop("DO WHILE", $2, $5); }
+	| DO statement WHILE '(' expression ')' ';'
+		{ $$ = make_binop("DO", $2, make_unop("WHILE", $5)); }
 	| FOR '(' expression_statement expression_statement ')' statement
-		{ $$ = NULL; }
+		{ $$ = make_binop("FOR", make_statement_list($3, $4), $6); }
 	| FOR '(' expression_statement expression_statement expression ')' statement
-		{ $$ = NULL; }
+		{ $$ = make_binop("FOR", make_statement_list(make_statement_list($3, $4), $5), $7); }
 	;
 
 jump_statement
 	: GOTO IDENTIFIER ';' { $$ = NULL; }
-	| CONTINUE ';' { $$ = NULL; }
-	| BREAK ';' { $$ = NULL; }
-	| RETURN ';' { $$ = NULL; }
-	| RETURN expression ';' { $$ = $2; }
+	| CONTINUE ';' { $$ = make_constant("CONTINUE"); }
+	| BREAK ';' { $$ = make_constant("BREAK"); }
+	| RETURN ';' { $$ = make_constant("RETURN"); }
+	| RETURN expression ';' { $$ = make_unop("RETURN", $2); }
 	;
 
 translation_unit
