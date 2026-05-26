@@ -71,6 +71,26 @@ SymbolStatement *lookup(const char *name) {
     return NULL;
 }
 
+ASTNode *create_node() {
+    ASTNode *node = calloc(1, sizeof(ASTNode));
+    if (!node) {
+        printf("ERROR - failed to initialize node\n");
+        return NULL;
+    }
+
+    return node;
+}
+
+SymbolStatement *create_ss() {
+    SymbolStatement *ss = calloc(1, sizeof(SymbolStatement));
+    if (!ss) {
+        printf("ERROR - failed to initialize symbol statement\n");
+        return NULL;
+    }
+
+    return ss;
+}
+
 ASTNode *make_statement_list(ASTNode *current, ASTNode *next) {
     ASTNode *node = create_node();
 
