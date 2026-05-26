@@ -49,7 +49,7 @@ void print_dot_node(FILE *f, ASTNode *node, int *counter) {
     }
 }
 
-void insert(char *name) {
+void insert(const char *name) {
     if (symbol_count >= MAX_SYMBOLS) {
         printf("ERROR - Symbol table at full capacity.\n");
         return;
@@ -61,7 +61,7 @@ void insert(char *name) {
     symbol_count++;
 }
 
-SymbolStatement *lookup(char *name) {
+SymbolStatement *lookup(const char *name) {
     for (size_t i=0; i<symbol_count; i++) {
         if (strcmp(symbol_table[i].name, name) == 0) {
             return &symbol_table[i];
@@ -81,7 +81,7 @@ ASTNode *make_statement_list(ASTNode *current, ASTNode *next) {
     return node;
 }
 
-ASTNode *make_identifier(char *name, SymbolStatement *ss) {
+ASTNode *make_identifier(const char *name, SymbolStatement *ss) {
     if (ss == NULL) {
         return NULL;
     }
@@ -92,14 +92,14 @@ ASTNode *make_identifier(char *name, SymbolStatement *ss) {
     return node;
 }
 
-ASTNode *make_constant(char *name) {
+ASTNode *make_constant(const char *name) {
     ASTNode *node = create_node();
     node->name = strdup(name);
 
     return node;
 }
 
-ASTNode *make_unop(char *op, ASTNode *node_left) {
+ASTNode *make_unop(const char *op, ASTNode *node_left) {
     if (node_left == NULL) {
         printf("ERROR - NULL node during unop creation\n");
         return NULL;
@@ -112,7 +112,7 @@ ASTNode *make_unop(char *op, ASTNode *node_left) {
     return node;
 }
 
-ASTNode *make_binop(char *op, ASTNode *node_left, ASTNode *node_right) {
+ASTNode *make_binop(const char *op, ASTNode *node_left, ASTNode *node_right) {
     if (node_left == NULL || node_right == NULL) {
         printf("ERROR - NULL node during binop creation\n");
         return NULL;
