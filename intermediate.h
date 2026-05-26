@@ -16,8 +16,11 @@ typedef struct SymbolStatement {
 void print_dot(char *filename, ASTNode *root);
 void print_dot_node(FILE *f, ASTNode *node, int *counter);
 
-void insert(char *name);
-SymbolStatement *lookup(char *name);
+void insert(const char *name);
+SymbolStatement *lookup(const char *name);
+
+ASTNode *create_node();
+SymbolStatement *create_ss();
 
 ASTNode *make_statement_list(ASTNode *current, ASTNode *next);
 ASTNode *make_identifier(const char *name, SymbolStatement *ss);
