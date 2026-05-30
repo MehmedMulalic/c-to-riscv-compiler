@@ -6,6 +6,7 @@ typedef struct ASTNode {
     struct ASTNode *left;
     struct ASTNode *right;
     char *name;
+    int type;
 } ASTNode;
 
 typedef struct SymbolStatement {

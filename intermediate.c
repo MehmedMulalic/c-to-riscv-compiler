@@ -115,6 +115,7 @@ ASTNode *make_identifier(const char *name, SymbolStatement *ss) {
 ASTNode *make_constant(const char *name) {
     ASTNode *node = create_node();
     node->name = strdup(name);
+    node->type = current_type;
 
     return node;
 }
