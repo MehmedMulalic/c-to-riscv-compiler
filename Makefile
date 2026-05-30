@@ -3,7 +3,6 @@ all:
 	flex scanner.l
 	gcc lex.yy.c parser.tab.c intermediate.c -o cparser
 	./cparser test_function.c
-	dot -Tpng test_function.dot -o test_function.png
 
 parser:
 	bison -d parser.y
@@ -11,13 +10,19 @@ parser:
 	gcc lex.yy.c parser.tab.c intermediate.c -o cparser
 	rm -f lex.yy.c parser.tab.c parser.tab.h
 
+dot:
+	bison -d parser.y
+	flex scanner.l
+	gcc lex.yy.c parser.tab.c intermediate.c -o cparser
+	dot -Tpng test_function.dot -o test_function.png
+
 debug:
 	bison -d -t parser.y
 	flex -d scanner.l
-	gcc -g lex.yy.c parser.tab.c intermediate.c -o cparser
+	gcc -g -Wall -Wextra lex.yy.c parser.tab.c intermediate.c -o cparser
 
 clean:
-	rm -f lex.yy.c parser.tab.c parser.tab.h test_function.dot test_function.png cparser 
+	rm -f lex.yy.c parser.tab.c parser.tab.h program.s cparser 
 
 clean_all:
-	rm -f lex.yy.c parser.tab.c parser.tab.h test_function.dot test_function.png cparser *.lis 
+	rm -f lex.yy.c parser.tab.c parser.tab.h program.s cparser *.lis 
