@@ -2424,7 +2424,7 @@ int main(int argc, char **argv)
 
  i=yyparse();
 
- if (root_node != NULL) print_dot("test_function.dot", root_node);
+ if (root_node != NULL) generate_code(root_node);
 
  if (i==0)
    fprintf(stderr,"\nNo errors detected.\n");

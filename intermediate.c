@@ -8,7 +8,7 @@
 #include "intermediate.h"
 #include "parser.tab.h"
 
-int current_type;
+int current_type = 0;
 long current_offset = 0;
 size_t symbol_count = 0;
 SymbolStatement symbol_table[MAX_SYMBOLS];
@@ -48,57 +48,6 @@ int parse_int32(const char *s, int32_t *out) {
     return 0;
 }
 
-/* IN CASE THE INTERPRETER DOES NOT ASSUME INTEGERS ONLY
-=== delete otherwise ===
-
-int get_data_type_bytes(int type) {
-    switch(type) {
-        case CHAR: return 1;
-        case INT: return 4;
-        case FLOAT: return 4;
-        case DOUBLE: return 8;
-        default: return -1;
-    }
-}
-
-void print_ss_value(SymbolStatement *ss, double value) {
-    if (ss->type == INT) {
-        printf("    li t0, %d\n", (int)value);
-        return;
-    }
-    if (ss->type == FLOAT) {
-        printf("    %f\n", (float)value);
-        return;
-    }
-    if (ss->type == DOUBLE) {
-        printf("    %f\n", value);
-        return;
-    }
-
-    printf("Error assigning value to DynamicVariable: %f\n", value);
-    return;
-}
-
-
-type_fn 
-static DataTypeEntry datatypes[] = {
-    {1, convert_char},
-    {INT, to_int},
-    {NULL, NULL}
-};
-
-int convert_int(double v) {
-    return int(v);
-}
-*/
-
-void check_ss(SymbolStatement *ss1, SymbolStatement *ss2) {
-    if ((ss1 == NULL) || (ss2 == NULL)) {
-        printf("Null symbol statement\n");
-        exit(EXIT_FAILURE);
-    }
-}
-
 void handle_err(int err) {
     if (err != 0) {
         printf("Error parsing value: %d\n", err);
@@ -106,101 +55,49 @@ void handle_err(int err) {
     }
 }
 
-void handle_add(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {
-    check_ss(ss_left, ss_right);
+ExprResult handle_add(FILE *f, ExprResult left, ExprResult right) {
+    ExprResult r;
 
-    int32_t c_left, c_right;
-    int err = 0;
+    fprintf(f, "    add t0, t1, t0\n");
+    strcpy(r.reg, "t0");
 
-    // If ss is a constant
-    if (isdigit((unsigned char)ss_left->name[0])) {
-        err = parse_int32(ss_left->name, &c_left);
-        handle_err(err);
-    }
-    if (isdigit((unsigned char)ss_right->name[0])) {
-        err = parse_int32(ss_right->name, &c_right);
-        handle_err(err);
-    }
-
-    // 5 + 3
-    fprintf(f, "   li t0, %d\n", c_left);
-    fprintf(f, "   li t1, %d\n", c_right);
-    fprintf(f, "   add t2, t0, t1\n");
-
-    // a + 5 i obrnuto
-
-
-    // a + b
-    fprintf(f, "   lw t0, %d(fp)\n", ss_left->offset);
-    fprintf(f, "   lw t1, %d(fp)\n", ss_right->offset);
-    fprintf(f, "   add t2, t0, t1\n");
+    return r;
 }
-void handle_sub(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_mul(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_div(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_mod(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_bl(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_br(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_ge(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_le(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_leq(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_geq(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_eq(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {
-    int32_t c_right;
-    int err = 0;
-    if (isdigit((unsigned char)ss_right->name[0])) {
-        err = parse_int32(ss_right->name, &c_right);
-        handle_err(err);
-    }
 
-    // a = 0
-    fprintf(f, "   li t0, %d\n", c_right);
-    fprintf(f, "   sw t0, %d(fp)\n", ss_left->offset);
+ExprResult handle_eq(FILE *f, ExprResult left, ExprResult right) {
+    ExprResult r;
 
-    // a = b
-    fprintf(f, "   lw t0, %d(fp)\n", ss_right->offset);
-    fprintf(f, "   sw t0, %d(fp)\n", ss_left->offset);
+    fprintf(f, "    sw t0, %d(fp)\n", left.offset);
+
+    return r;
 }
-void handle_iseq(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_neq(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_band(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_xor(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_bor(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_and(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_or(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_if(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_else(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_switch(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_while(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_do(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
-void handle_for(FILE *f, SymbolStatement *ss_left, SymbolStatement *ss_right) {}
 
 static TokenEntry tokens[] = {
     {"+", handle_add},
-    {"-", handle_sub},
-    {"*", handle_mul},
-    {"/", handle_div},
-    {"\%", handle_mod},
-    {"<<", handle_bl},
-    {">>", handle_br},
-    {">", handle_ge},
-    {"<", handle_le},
-    {"<=", handle_leq},
-    {">=", handle_geq},
+    // {"-", handle_sub},
+    // {"*", handle_mul},
+    // {"/", handle_div},
+    // {"\%", handle_mod},
+    // {"<<", handle_bl},
+    // {">>", handle_br},
+    // {">", handle_ge},
+    // {"<", handle_le},
+    // {"<=", handle_leq},
+    // {">=", handle_geq},
     {"=", handle_eq},
-    {"==", handle_iseq},
-    {"!=", handle_neq},
-    {"&", handle_band},
-    {"^", handle_xor},
-    {"|", handle_bor},
-    {"&&", handle_and},
-    {"||", handle_or},
-    {"IF", handle_if},
-    {"ELSE", handle_else},
-    {"SWITCH", handle_switch},
-    {"WHILE", handle_while},
-    {"DO", handle_do},
-    {"FOR", handle_for},
+    // {"==", handle_iseq},
+    // {"!=", handle_neq},
+    // {"&", handle_band},
+    // {"^", handle_xor},
+    // {"|", handle_bor},
+    // {"&&", handle_and},
+    // {"||", handle_or},
+    // {"IF", handle_if},
+    // {"ELSE", handle_else},
+    // {"SWITCH", handle_switch},
+    // {"WHILE", handle_while},
+    // {"DO", handle_do},
+    // {"FOR", handle_for},
     {NULL, NULL}
 };
 
@@ -269,16 +166,6 @@ ASTNode *create_node() {
     return node;
 }
 
-SymbolStatement *create_ss() {
-    SymbolStatement *ss = calloc(1, sizeof(SymbolStatement));
-    if (!ss) {
-        printf("ERROR - failed to initialize symbol statement\n");
-        return NULL;
-    }
-
-    return ss;
-}
-
 ASTNode *make_statement_list(ASTNode *current, ASTNode *next) {
     ASTNode *node = create_node();
 
@@ -342,14 +229,6 @@ int isLeaf(ASTNode *node) {
     return 0;
 }
 
-int isVariable(ASTNode *node) {
-    SymbolStatement *symbol = lookup(node->name);
-    if (symbol != NULL)
-        return 1;
-
-    return 0;
-}
-
 /**
  * @brief Returns the function assigned to the desired token.
  * 
@@ -366,6 +245,7 @@ token_fn token_handler(ASTNode *node) {
         }
     }
 
+    printf("Expression not found: %s\n", node->name);
     return NULL;
 }
 
@@ -377,6 +257,7 @@ void generate_code(ASTNode *root) {
     fprintf(f, ".globl main\n\n");
 
     fprintf(f, "main:\n");
+    generate_symbol_code(f);
     generate_node_code(f, root);
 
     fprintf(f, "\n    li a7, 93\n");
@@ -384,46 +265,58 @@ void generate_code(ASTNode *root) {
     fclose(f);
 }
 
-SymbolStatement *generate_node_code(FILE *f, ASTNode *node) {
-    if (node == NULL) return NULL;
+void generate_symbol_code(FILE *f) {
+    // 16-bit alignment
+    int times = (symbol_count + 3) / 4;
+    int bytes = times * 16;
+    fprintf(f, "    addi sp, sp, -%d\n", bytes);
+}
+
+ExprResult generate_node_code(FILE *f, ASTNode *node) {
+    if (node == NULL) {
+        printf("Node is NULL\n");
+        ExprResult r = {0};
+        return r;
+    }
     
     // Leaf node
     if (isLeaf(node)) {
+        SymbolStatement *sym = lookup(node->name);
+        ExprResult r;
+
         // Identifier
-        if (lookup(node->name) != NULL) {
-            return lookup(node->name);
+        if (sym != NULL) {
+            fprintf(f, "    lw t0, %d(fp)\n", sym->offset);
+
+            r.is_var = 1;
+            r.offset = sym->offset;
+            strcpy(r.reg, "t0");
+
+            return r;
         }
         
         // Constant
-        SymbolStatement *ss = create_ss();
-        ss->name = strdup(node->name);
-        ss->type = node->type;
+        fprintf(f, "    li t0, %s\n", node->name);
 
-        return ss;
+        r.is_const = 1;
+        handle_err(parse_int32(node->name, &r.int_val));
+        strcpy(r.reg, "t0");
+
+        return r;
     }
     
     // Parent node
-    token_fn current_operation = NULL;
-    SymbolStatement *ss_left = NULL;
-    SymbolStatement *ss_right = NULL;
+    ExprResult left = generate_node_code(f, node->left);
+    fprintf(f, "    mv t1, t0\n");
+    
+    ExprResult right = generate_node_code(f, node->right);
+    token_fn fn = token_handler(node);
 
-    if (token_handler(node) != NULL) {
-        current_operation = token_handler(node);
-    }
-    if (node->left != NULL) {
-        ss_left = generate_node_code(f, node->left);
-    }
-    if (node->right != NULL) {
-        ss_right = generate_node_code(f, node->right);
-    }
-    if (ss_left != NULL && ss_right != NULL) {
-        current_operation(f, ss_left, ss_right);
+    if (fn) {
+        return fn(f, left, right);
     }
 
-    SymbolStatement *ss = create_ss();
-    // ss->name
-
-    //* ovdje sam po izgledu stao htio sam napraviti ss haj ga sad znaj lol
-
-    return ss;
+    ExprResult r;
+    printf("No function to execute\n");
+    return r;
 }
