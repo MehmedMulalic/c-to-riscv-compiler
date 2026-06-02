@@ -25,6 +25,7 @@ ASTNode *root_node = NULL;
  * @return int32_t Parsed 32-bit integer
  * @return -1 if parsed value it out of bounds
  * @return -2 if parsed value is a string instead of a number
+ * @return -3 if parsed value contains characters
  */
 int parse_int32(const char *s, int32_t *out) {
     errno = 0;
@@ -33,15 +34,15 @@ int parse_int32(const char *s, int32_t *out) {
     long val = strtol(s, &end, 10);
     if (end == s) {
         printf("Error parsing value to int32: No digits found\n");
-        return 1;
+        return -1;
     }
     if (errno == ERANGE || val < INT32_MIN || val > INT32_MAX) {
         printf("Error parsing value to int32: Value outside of bounds\n");
-        return 2;
+        return -2;
     }
     if (*end != '\0') {
         printf("Error parsing value to int32: The parsed value contains characters\n");
-        return 3;
+        return -3;
     }
 
     *out = (int32_t)val;
