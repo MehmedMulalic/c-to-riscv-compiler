@@ -65,6 +65,42 @@ ExprResult handle_add(FILE *f, ExprResult left, ExprResult right) {
     return r;
 }
 
+ExprResult handle_sub(FILE *f, ExprResult left, ExprResult right) {
+    ExprResult r;
+
+    fprintf(f, "    sub t0, t1, t0\n");
+    strcpy(r.reg, "t0");
+
+    return r;
+}
+
+ExprResult handle_mul(FILE *f, ExprResult left, ExprResult right) {
+    ExprResult r;
+
+    fprintf(f, "    mul t0, t1, t0\n");
+    strcpy(r.reg, "t0");
+
+    return r;
+}
+
+ExprResult handle_div(FILE *f, ExprResult left, ExprResult right) {
+    ExprResult r;
+
+    fprintf(f, "    div t0, t1, t0\n");
+    strcpy(r.reg, "t0");
+
+    return r;
+}
+
+ExprResult handle_mod(FILE *f, ExprResult left, ExprResult right) {
+    ExprResult r;
+
+    fprintf(f, "    rem t0, t1, t0\n");
+    strcpy(r.reg, "t0");
+
+    return r;
+}
+
 ExprResult handle_eq(FILE *f, ExprResult left, ExprResult right) {
     ExprResult r;
 
@@ -75,10 +111,10 @@ ExprResult handle_eq(FILE *f, ExprResult left, ExprResult right) {
 
 static TokenEntry tokens[] = {
     {"+", handle_add},
-    // {"-", handle_sub},
-    // {"*", handle_mul},
-    // {"/", handle_div},
-    // {"\%", handle_mod},
+    {"-", handle_sub},
+    {"*", handle_mul},
+    {"/", handle_div},
+    {"\%", handle_mod},
     // {"<<", handle_bl},
     // {">>", handle_br},
     // {">", handle_ge},
