@@ -18,6 +18,7 @@ void yyerror();
 %union {
 	char *strval;
 	ASTNode *node;
+	NodeData nodedata;
 }
 
 %type <node> statement_list statement labeled_statement compound_statement
@@ -27,7 +28,8 @@ void yyerror();
 %type <node> and_expression equality_expression relational_expression shift_expression
 %type <node> additive_expression multiplicative_expression cast_expression unary_expression
 %type <node> postfix_expression primary_expression
-%type <strval> assignment_operator unary_operator
+%type <strval> unary_operator
+%type <nodedata> assignment_operator
 
 %token <strval> IDENTIFIER CONSTANT STRING_LITERAL SIZEOF
 %token PTR_OP INC_OP DEC_OP LEFT_OP RIGHT_OP LE_OP GE_OP EQ_OP NE_OP
@@ -97,77 +99,77 @@ cast_expression
 multiplicative_expression
 	: cast_expression
 	| multiplicative_expression '*' cast_expression
-		{ $$ = make_binop("*", $1, $3); }
+		{ $$ = make_binop(NODE_MUL, $1, $3); }
 	| multiplicative_expression '/' cast_expression
-		{ $$ = make_binop("/", $1, $3); }
+		{ $$ = make_binop(NODE_DIV, $1, $3); }
 	| multiplicative_expression '%' cast_expression
-		{ $$ = make_binop("\%", $1, $3); }
+		{ $$ = make_binop(NODE_MOD, $1, $3); }
 	;
 
 additive_expression
 	: multiplicative_expression
 	| additive_expression '+' multiplicative_expression
-		{ $$ = make_binop("+", $1, $3); }
+		{ $$ = make_binop(NODE_ADD, $1, $3); }
 	| additive_expression '-' multiplicative_expression
-		{ $$ = make_binop("-", $1, $3); }
+		{ $$ = make_binop(NODE_SUB, $1, $3); }
 	;
 
 shift_expression
 	: additive_expression
 	| shift_expression LEFT_OP additive_expression
-		{ $$ = make_binop("<<", $1, $3); }
+		{ $$ = make_binop(NODE_BL, $1, $3); }
 	| shift_expression RIGHT_OP additive_expression
-		{ $$ = make_binop(">>", $1, $3); }
+		{ $$ = make_binop(NODE_BR, $1, $3); }
 	;
 
 relational_expression
 	: shift_expression
 	| relational_expression '<' shift_expression
-		{ $$ = make_binop("<", $1, $3); }
+		{ $$ = make_binop(NODE_LE, $1, $3); }
 	| relational_expression '>' shift_expression
-		{ $$ = make_binop(">", $1, $3); }
+		{ $$ = make_binop(NODE_GE, $1, $3); }
 	| relational_expression LE_OP shift_expression
-		{ $$ = make_binop("<=", $1, $3); }
+		{ $$ = make_binop(NODE_LEQ, $1, $3); }
 	| relational_expression GE_OP shift_expression
-		{ $$ = make_binop(">=", $1, $3); }
+		{ $$ = make_binop(NODE_GEQ, $1, $3); }
 	;
 
 equality_expression
 	: relational_expression
 	| equality_expression EQ_OP relational_expression
-		{ $$ = make_binop("==", $1, $3); }
+		{ $$ = make_binop(NODE_ISEQ, $1, $3); }
 	| equality_expression NE_OP relational_expression
-		{ $$ = make_binop("!=", $1, $3); }
+		{ $$ = make_binop(NODE_NEQ, $1, $3); }
 	;
 
 and_expression
 	: equality_expression
 	| and_expression '&' equality_expression
-		{ $$ = make_binop("&", $1, $3); }
+		{ $$ = make_binop(NODE_BAND, $1, $3); }
 	;
 
 exclusive_or_expression
 	: and_expression
 	| exclusive_or_expression '^' and_expression
-		{ $$ = make_binop("^", $1, $3); }
+		{ $$ = make_binop(NODE_XOR, $1, $3); }
 	;
 
 inclusive_or_expression
 	: exclusive_or_expression
 	| inclusive_or_expression '|' exclusive_or_expression
-		{ $$ = make_binop("|", $1, $3); }
+		{ $$ = make_binop(NODE_BOR, $1, $3); }
 	;
 
 logical_and_expression
 	: inclusive_or_expression
 	| logical_and_expression AND_OP inclusive_or_expression
-		{ $$ = make_binop("&&", $1, $3); }
+		{ $$ = make_binop(NODE_AND, $1, $3); }
 	;
 
 logical_or_expression
 	: logical_and_expression
 	| logical_or_expression OR_OP logical_and_expression
-		{ $$ = make_binop("||", $1, $3); }
+		{ $$ = make_binop(NODE_OR, $1, $3); }
 	;
 
 conditional_expression
@@ -182,17 +184,17 @@ assignment_expression
 	;
 
 assignment_operator
-	: '=' { $$ = "="; }
-	| MUL_ASSIGN { $$ = "*="; }
-	| DIV_ASSIGN { $$ = "/="; }
-	| MOD_ASSIGN { $$ = "\%="; }
-	| ADD_ASSIGN { $$ = "+="; }
-	| SUB_ASSIGN { $$ = "-="; }
-	| LEFT_ASSIGN { $$ = "<<="; }
-	| RIGHT_ASSIGN { $$ = ">>="; }
-	| AND_ASSIGN { $$ = "&="; }
-	| XOR_ASSIGN { $$ = "^="; }
-	| OR_ASSIGN { $$ = "|="; }
+	: '=' { $$ = NODE_EQ; }
+	| MUL_ASSIGN { $$ = NODE_NULL; }
+	| DIV_ASSIGN { $$ = NODE_NULL; }
+	| MOD_ASSIGN { $$ = NODE_NULL; }
+	| ADD_ASSIGN { $$ = NODE_NULL; }
+	| SUB_ASSIGN { $$ = NODE_NULL; }
+	| LEFT_ASSIGN { $$ = NODE_NULL; }
+	| RIGHT_ASSIGN { $$ = NODE_NULL; }
+	| AND_ASSIGN { $$ = NODE_NULL; }
+	| XOR_ASSIGN { $$ = NODE_NULL; }
+	| OR_ASSIGN { $$ = NODE_NULL; }
 	;
 
 expression
@@ -433,22 +435,22 @@ expression_statement
 
 selection_statement
 	: IF '(' expression ')' statement
-		{ $$ = make_binop("IF", $3, $5); }
+		{ $$ = make_conditional(NODE_IF, $3, $5); }
 	| IF '(' expression ')' statement ELSE statement
-		{ $$ = make_binop("IF", $3, make_binop("ELSE", $5, $7)); }
+		{ $$ = make_conditional(NODE_IF, $3, make_conditional(NODE_ELSE, $5, $7)); }
 	| SWITCH '(' expression ')' statement
-		{ $$ = make_binop("SWITCH", $3, $5); }
+		{ $$ = make_conditional(NODE_SWITCH, $3, $5); }
 	;
 
 iteration_statement
 	: WHILE '(' expression ')' statement
-		{ $$ = make_binop("WHILE", $3, $5); }
+		{ $$ = make_conditional(NODE_WHILE, $3, $5); }
 	| DO statement WHILE '(' expression ')' ';'
-		{ $$ = make_binop("DO", $2, make_unop("WHILE", $5)); }
+		{ $$ = make_conditional(NODE_DO, $2, make_while_cond($5)); }
 	| FOR '(' expression_statement expression_statement ')' statement
-		{ $$ = make_binop("FOR", make_statement_list($3, $4), $6); }
+		{ $$ = make_conditional(NODE_FOR, make_statement_list($3, $4), $6); }
 	| FOR '(' expression_statement expression_statement expression ')' statement
-		{ $$ = make_binop("FOR", make_statement_list(make_statement_list($3, $4), $5), $7); }
+		{ $$ = make_conditional(NODE_FOR, make_statement_list(make_statement_list($3, $4), $5), $7); }
 	;
 
 jump_statement

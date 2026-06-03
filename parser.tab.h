@@ -130,8 +130,9 @@ union YYSTYPE
 
 	char *strval;
 	ASTNode *node;
+	NodeData nodedata;
 
-#line 135 "parser.tab.h"
+#line 136 "parser.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
