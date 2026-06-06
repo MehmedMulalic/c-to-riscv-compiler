@@ -112,7 +112,7 @@ ASTNode *make_constant(const char *name) {
         node->type = FLOAT;
         node->float_label = strdup(intern_float_const(name));
     } else {
-        node->type = IS_FLOAT(current_type) ? INT : current_type;
+        node->type = INT;
     }
 
     return node;
