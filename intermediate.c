@@ -9,13 +9,36 @@
 #include "intermediate.h"
 #include "parser.tab.h"
 
+#define IS_FLOAT(t) ((t) == FLOAT)
+
 int current_type = 0;
 int label_count = 0;
+int float_const_count = 0;
 int expr_depth = 0;
 long current_offset = 0;
 size_t symbol_count = 0;
 SymbolStatement symbol_table[MAX_SYMBOLS];
 ASTNode *root_node = NULL;
+FloatConst float_consts[MAX_FLOAT_CONSTS];
+
+static const char *intern_float_const(const char *value) {
+    for (int i = 0; i < float_const_count; i++) {
+        if (strcmp(float_consts[i].value, value) == 0)
+            return float_consts[i].label;
+    }
+    if (float_const_count >= MAX_FLOAT_CONSTS) {
+        fprintf(stderr, "ERROR - float constant table full\n");
+        return ".FC_ERR";
+    }
+
+    char buf[32];
+    snprintf(buf, sizeof(buf), ".FC%d", float_const_count);
+    float_consts[float_const_count].label = strdup(buf);
+    float_consts[float_const_count].value = strdup(value);
+    float_const_count++;
+    
+    return float_consts[float_const_count - 1].label;
+}
 
 int new_label() {
     return label_count++;
@@ -83,8 +106,14 @@ ASTNode *make_identifier(const char *name, SymbolStatement *ss) {
 ASTNode *make_constant(const char *name) {
     ASTNode *node = create_node();
     node->name = strdup(name);
-    node->type = current_type;
     node->kind = NODE_CONSTANT;
+    
+    if (strchr(name, '.') || strchr(name, 'e') || strchr(name, 'E')) {
+        node->type = FLOAT;
+        intern_float_const(name);
+    } else {
+        node->type = current_type;
+    }
 
     return node;
 }
@@ -99,6 +128,7 @@ ASTNode *make_unop(const char *op, ASTNode *node_left) {
     node->left = node_left;
     node->name = strdup(op);
     node->kind = NODE_OPERAND;
+    node->type = node_left->type;
 
     return node;
 }
@@ -114,6 +144,8 @@ ASTNode *make_binop(NodeData nodedata, ASTNode *node_left, ASTNode *node_right) 
     node->right = node_right;
     node->kind = NODE_OPERAND;
     node->op = nodedata;
+    node->type = (IS_FLOAT(node_left->type) || IS_FLOAT(node_right->type))
+                ? FLOAT : node_left->type;
 
     return node;
 }
@@ -149,6 +181,14 @@ void generate_code(ASTNode *root) {
     if (root == NULL) return;
     FILE *f = fopen(RISC_FILENAME, "w");
 
+    if (float_const_count > 0) {
+        fprintf(f, ".data\n");
+        for (int i = 0; i < float_const_count; i++) {
+            fprintf(f, "%s: .float %s\n", float_consts[i].label, float_consts[i].value);
+        }
+        fprintf(f, "\n");
+    }
+
     fprintf(f, ".text\n");
     fprintf(f, ".globl main\n\n");
 
@@ -169,6 +209,15 @@ void generate_symbol_code(FILE *f) {
     fprintf(f, "    mv fp, sp\n\n");
 }
 
+void promote_if_needed(FILE *f, int left_type, int right_type) {
+    if (!IS_FLOAT(left_type) && IS_FLOAT(right_type)) {
+        fprintf(f, "    fcvt.s.w ft1, t1\n");
+    }
+    if (IS_FLOAT(left_type) && !IS_FLOAT(right_type)) {
+        fprintf(f, "    fcvt.s.w ft0, t0\n");
+    }
+}
+
 void generate_node_code(FILE *f, ASTNode *node) {
     if (!node) return;
     if (node->kind == NODE_STATEMENTS) {
@@ -177,17 +226,34 @@ void generate_node_code(FILE *f, ASTNode *node) {
         return;
     }
 
-    /* Leaf nodes */
+    /************** 
+    *  Leaf nodes
+    ***************/
+
     if (node->kind == NODE_CONSTANT) {
-        fprintf(f, "    li t0, %s\n", node->name);
+        if (IS_FLOAT(node->type)) {
+            const char *label = intern_float_const(node->name);
+            fprintf(f, "    lui t0, %%hi(%s)\n", label);
+            fprintf(f, "    flw ft0, %%lo(%s)(t0)\n", label);
+        } else {
+            fprintf(f, "    li t0, %s\n", node->name);
+        }
         return;
     }
+
     if (node->kind == NODE_IDENTIFIER) {
-        fprintf(f, "    lw t0, %d(fp)\n", node->offset);
+        if (IS_FLOAT(node->type)) {
+            fprintf(f, "    flw ft0, %d(fp)\n", node->offset);
+        } else {
+            fprintf(f, "    lw t0, %d(fp)\n", node->offset);
+        }
         return;
     }
     
-    /* Parent nodes */
+    /**************** 
+    *  Parent nodes
+    *****************/
+
     // Conditions
     if (node->kind == NODE_IF) {
         if (node->right && node->right->kind == NODE_ELSE) {
@@ -230,6 +296,11 @@ void generate_node_code(FILE *f, ASTNode *node) {
         fprintf(f, "    j .L%d\n", start_label);
         
         fprintf(f, ".L%d:\n", end_label);
+        return;
+    }
+
+    if (node->kind == NODE_WHILE_COND) {
+        generate_node_code(f, node->left);
         return;
     }
     
@@ -282,7 +353,14 @@ void generate_node_code(FILE *f, ASTNode *node) {
 
     if (node->op == NODE_EQ) {
         generate_node_code(f, node->right);
-        fprintf(f, "    sw t0, %d(fp)\n", node->left->offset);
+        if (IS_FLOAT(node->type)) {
+            if (!IS_FLOAT(node->right->type)) {
+                fprintf(f, "    fcvt.s.w ft0, t0\n");
+            }
+            fprintf(f, "    fsw ft0, %d(fp)\n", node->left->offset);
+        } else {
+            fprintf(f, "    sw t0, %d(fp)\n", node->left->offset);
+        }
         return;
     }
 
@@ -298,46 +376,76 @@ void generate_node_code(FILE *f, ASTNode *node) {
     return;
     }
     
-    generate_node_code(f, node->left);
+    int is_float_expr = IS_FLOAT(node->type);
     int mem = (expr_depth + 1) * 4;
-    fprintf(f, "    sw t0, %d(fp)\n", mem);
+
+    generate_node_code(f, node->left);
+    if (IS_FLOAT(node->left->type)) {
+        fprintf(f, "    fsw ft0, %d(fp)\n", mem);
+    } else {
+        fprintf(f, "    sw t0, %d(fp)\n", mem);
+    }
     expr_depth++;
 
     generate_node_code(f, node->right);
-    fprintf(f, "    lw t1, %d(fp)\n", mem);
+    if (IS_FLOAT(node->right->type)) {
+        fprintf(f, "    fsw ft1, %d(fp)\n", mem);
+    } else {
+        fprintf(f, "    lw t1, %d(fp)\n", mem);
+    }
     expr_depth--;
 
-    switch (node->op) {
-    case NODE_ADD:
-        fprintf(f, "    add t0, t1, t0\n");
-        break;
-    case NODE_SUB:
-        fprintf(f, "    sub t0, t1, t0\n");
-        break;
-    case NODE_MUL:
-        fprintf(f, "    mul t0, t1, t0\n");
-        break;
-    case NODE_DIV:
-        fprintf(f, "    div t0, t1, t0\n");
-        break;
-    case NODE_MOD:
-        fprintf(f, "    rem t0, t1, t0\n");
-        break;
-    case NODE_LE:
-        fprintf(f, "    slt t0, t1, t0\n");
-        break;
-    case NODE_GE:
-        fprintf(f, "    slt t0, t0, t1\n");
-        break;
-    case NODE_ISEQ:
-        fprintf(f, "    sub t0, t1, t0\n");
-        fprintf(f, "    seqz t0, t0\n");
-        break;
-    case NODE_NEQ:
-        fprintf(f, "    sub t0, t1, t0\n");
-        fprintf(f, "    snez t0, t0\n");
-        break;
-    default:
-        break;
+    promote_if_needed(f, node->left->type, node->right->type);
+
+    if (is_float_expr) {
+        switch (node->op) {
+        case NODE_ADD:  fprintf(f, "    fadd.s ft0, ft1, ft0\n"); break;
+        case NODE_SUB:  fprintf(f, "    fsub.s ft0, ft1, ft0\n"); break;
+        case NODE_MUL:  fprintf(f, "    fmul.s ft0, ft1, ft0\n"); break;
+        case NODE_DIV:  fprintf(f, "    fdiv.s ft0, ft1, ft0\n"); break;
+        default: break;
+        }
+    } else {
+        switch (node->op) {
+        case NODE_ADD:  fprintf(f, "    add t0, t1, t0\n"); break;
+        case NODE_SUB:  fprintf(f, "    sub t0, t1, t0\n"); break;
+        case NODE_MUL:  fprintf(f, "    mul t0, t1, t0\n"); break;
+        case NODE_DIV:  fprintf(f, "    div t0, t1, t0\n"); break;
+        case NODE_MOD:  fprintf(f, "    rem t0, t1, t0\n"); break;
+        case NODE_LE:   fprintf(f, "    slt t0, t1, t0\n"); break;
+        case NODE_GE:   fprintf(f, "    slt t0, t0, t1\n"); break;
+        case NODE_ISEQ:
+            fprintf(f, "    sub t0, t1, t0\n");
+            fprintf(f, "    seqz t0, t0\n");
+            break;
+        case NODE_NEQ:
+            fprintf(f, "    sub t0, t1, t0\n");
+            fprintf(f, "    snez t0, t0\n");
+            break;
+        case NODE_BAND: fprintf(f, "    and t0, t1, t0\n"); break;
+        case NODE_BOR:  fprintf(f, "    or t0, t1, t0\n"); break;
+        case NODE_XOR:  fprintf(f, "    xor t0, t1, t0\n"); break;
+        case NODE_BL:   fprintf(f, "    sll t0, t1, t0\n"); break;
+        case NODE_BR:   fprintf(f, "    srl t0, t1, t0\n"); break;
+        case NODE_AND:
+            fprintf(f, "    snez t0, t1, t1\n");
+            fprintf(f, "    snez t0, t0, t0\n");
+            fprintf(f, "    and t0, t1, t0\n");
+            break;
+        case NODE_OR:
+            fprintf(f, "    snez t0, t1, t1\n");
+            fprintf(f, "    snez t0, t0, t0\n");
+            fprintf(f, "    or t0, t1, t0\n");
+            break;
+        case NODE_LEQ:
+            fprintf(f, "    slt t0, t0, t1\n");
+            fprintf(f, "    xori t0, t0, 1\n");
+            break;
+        case NODE_GEQ:
+            fprintf(f, "    slt t0, t1, t0\n");
+            fprintf(f, "    xori t0, t0, 1\n");
+            break;
+        default: break;
+        }
     }
 }
