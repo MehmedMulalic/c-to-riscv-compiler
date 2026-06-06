@@ -110,9 +110,9 @@ ASTNode *make_constant(const char *name) {
     
     if (strchr(name, '.') || strchr(name, 'e') || strchr(name, 'E')) {
         node->type = FLOAT;
-        intern_float_const(name);
+        node->float_label = strdup(intern_float_const(name));
     } else {
-        node->type = current_type;
+        node->type = IS_FLOAT(current_type) ? INT : current_type;
     }
 
     return node;
@@ -388,8 +388,8 @@ void generate_node_code(FILE *f, ASTNode *node) {
     expr_depth++;
 
     generate_node_code(f, node->right);
-    if (IS_FLOAT(node->right->type)) {
-        fprintf(f, "    fsw ft1, %d(fp)\n", mem);
+    if (IS_FLOAT(node->left->type)) {
+        fprintf(f, "    flw ft1, %d(fp)\n", mem);
     } else {
         fprintf(f, "    lw t1, %d(fp)\n", mem);
     }
@@ -403,6 +403,15 @@ void generate_node_code(FILE *f, ASTNode *node) {
         case NODE_SUB:  fprintf(f, "    fsub.s ft0, ft1, ft0\n"); break;
         case NODE_MUL:  fprintf(f, "    fmul.s ft0, ft1, ft0\n"); break;
         case NODE_DIV:  fprintf(f, "    fdiv.s ft0, ft1, ft0\n"); break;
+        case NODE_LE:   fprintf(f, "    flt.s t0, ft1, ft0\n"); break;
+        case NODE_GE:   fprintf(f, "    flt.s t0, ft0, ft1\n"); break;
+        case NODE_LEQ:  fprintf(f, "    fle.s t0, ft1, ft0\n"); break;
+        case NODE_GEQ:  fprintf(f, "    fle.s t0, ft0, ft1\n"); break;
+        case NODE_ISEQ: fprintf(f, "    feq.s t0, ft1, ft0\n"); break;
+        case NODE_NEQ:
+            fprintf(f, "    feq.s t0, ft1, ft0\n");
+            fprintf(f, "    xori t0, t0, 1\n");
+            break;
         default: break;
         }
     } else {

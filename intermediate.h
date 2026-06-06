@@ -49,6 +49,7 @@ typedef struct ASTNode {
     struct ASTNode *left;
     struct ASTNode *right;
     char *name;
+    char *float_label;
     int type;
     int offset;
 } ASTNode;
