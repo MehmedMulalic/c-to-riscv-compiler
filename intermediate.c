@@ -289,7 +289,7 @@ void generate_node_code(FILE *f, ASTNode *node) {
     // Expressions
     /*
     * Temporary values stored by nested arithmetics use
-    * fp-relative memory addresses. These addresses are
+    * fp-relative memory addresses. These addresses
     * use the expr_depth variable which tracks how deeply
     * nested a sub-expression is.
     */
