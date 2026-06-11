@@ -1,8 +1,10 @@
 all:
+	@test -f ./rars1_6.jar || (echo "Missing RARS" && exit 1)
 	bison -d parser.y
 	flex scanner.l
 	gcc lex.yy.c parser.tab.c intermediate.c -o cparser
 	./cparser test_function.c
+	java -jar rars1_6.jar nc program.s
 
 parser:
 	bison -d parser.y

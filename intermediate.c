@@ -83,8 +83,18 @@ ASTNode *make_statement_list(ASTNode *current, ASTNode *next) {
 
     node->left = current;
     node->right = next;
-    node->name = "STATEMENTS";
     node->kind = NODE_STATEMENTS;
+
+    return node;
+}
+
+/* Only one argument is allowed */
+ASTNode *make_argument_expression_list(ASTNode *function, ASTNode *args) {
+    ASTNode *node = create_node();
+
+    node->left = function;
+    node->right = args;
+    node->kind = NODE_FUNCTION;
 
     return node;
 }
@@ -196,6 +206,7 @@ void generate_code(ASTNode *root) {
     generate_symbol_code(f);
     generate_node_code(f, root);
 
+    fprintf(f, "\n    li a0, 0\n");
     fprintf(f, "\n    li a7, 93\n");
     fprintf(f, "    ecall\n");
     fclose(f);
@@ -226,9 +237,9 @@ void generate_node_code(FILE *f, ASTNode *node) {
         return;
     }
 
-    /************** 
-    *  Leaf nodes
-    ***************/
+    /****************/
+    /*  Leaf nodes  */
+    /****************/
 
     if (node->kind == NODE_CONSTANT) {
         if (IS_FLOAT(node->type)) {
@@ -250,9 +261,28 @@ void generate_node_code(FILE *f, ASTNode *node) {
         return;
     }
     
-    /**************** 
-    *  Parent nodes
-    *****************/
+    /******************/
+    /*  Parent nodes  */
+    /******************/
+
+    /* Supports only floats and integers; assumes printf with only one argument */
+    if (node->kind == NODE_FUNCTION) {
+        generate_node_code(f, node->right);
+
+        if (!IS_FLOAT(node->right->type)) {
+            fprintf(f, "    li a7, 1\n");
+            fprintf(f, "    mv a0, t0\n");
+        } else {
+            fprintf(f, "    li a7, 2\n");
+            fprintf(f, "    fmv.s fa0, ft0\n");
+        }
+
+        fprintf(f, "    ecall\n");
+        fprintf(f, "    li a0, 10\n");
+        fprintf(f, "    li a7, 11\n");
+        fprintf(f, "    ecall\n");
+        return;
+    }
 
     // Conditions
     if (node->kind == NODE_IF) {

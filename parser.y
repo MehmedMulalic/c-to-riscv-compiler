@@ -27,7 +27,7 @@ void yyerror();
 %type <node> logical_and_expression inclusive_or_expression exclusive_or_expression
 %type <node> and_expression equality_expression relational_expression shift_expression
 %type <node> additive_expression multiplicative_expression cast_expression unary_expression
-%type <node> postfix_expression primary_expression
+%type <node> postfix_expression primary_expression argument_expression_list
 %type <strval> unary_operator
 %type <nodedata> assignment_operator
 
@@ -59,7 +59,7 @@ postfix_expression
 	| postfix_expression '(' ')'
 		{ $$ = NULL; } // function call
 	| postfix_expression '(' argument_expression_list ')'
-		{ $$ = NULL; } // function call
+		{ $$ = make_argument_expression_list($1, $3->right); } // function call
 	| postfix_expression '.' IDENTIFIER
 	| postfix_expression PTR_OP IDENTIFIER
 	| postfix_expression INC_OP
@@ -69,8 +69,9 @@ postfix_expression
 	;
 
 argument_expression_list
-	: assignment_expression
+	: assignment_expression { $$ = $1; }
 	| argument_expression_list ',' assignment_expression
+		{ $$ = make_argument_expression_list($1, $3); }
 	;
 
 unary_expression
@@ -493,6 +494,11 @@ char *s;
 
 int main(int argc, char **argv)
 {
+	/**********************/
+	/* library inclusions */
+	/**********************/
+	insert("printf");
+
  int i;
 
  for(i=1;i<argc;i++) {
@@ -502,10 +508,6 @@ int main(int argc, char **argv)
        case 'o':
           output_filename=argv[i]+2;
           break;
-
-       /********************************/
-       /* specify your own option here */
-       /********************************/
 
        default:
           fprintf(stderr,"%s: unknown argument option\n",argv[0]);

@@ -30,6 +30,7 @@ typedef enum NodeData {
 } NodeData;
 
 typedef enum NodeKind {
+    NODE_FUNCTION,
     NODE_STATEMENTS,
     NODE_OPERAND,
     NODE_IDENTIFIER,
@@ -71,6 +72,7 @@ SymbolStatement *lookup(const char *name);
 
 ASTNode *create_node();
 ASTNode *make_statement_list(ASTNode *current, ASTNode *next);
+ASTNode *make_argument_expression_list(ASTNode *current, ASTNode *next);
 ASTNode *make_identifier(const char *name, SymbolStatement *ss);
 ASTNode *make_constant(const char *name);
 ASTNode *make_unop(const char *op, ASTNode *node_left);
