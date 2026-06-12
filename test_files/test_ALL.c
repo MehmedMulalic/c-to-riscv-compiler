@@ -7,7 +7,7 @@ int main() {
     // --------------------
     // Integer basics
     // --------------------
-    int a, b, c, r;
+    int a, b, c, r, i, sum;
     a = 4;
     b = 6;
     c = 3;
@@ -51,7 +51,6 @@ int main() {
     // --------------------
     // While loop
     // --------------------
-    int i, sum;
     i = 0;
     sum = 0;
 
@@ -96,6 +95,4 @@ int main() {
     // --------------------
     fr = a + 0.5;   // 4.5
     printf("Mixed expected 4.5: %f\n", fr);
-
-    return 0;
 }
